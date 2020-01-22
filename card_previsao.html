@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html ng-app="meuCard">
+<head>
+    <meta charset="utf-8">
+    <title></title>
+    <script src="https://ajax.googleapis.com/ajax/libs/angularjs/1.7.8/angular.min.js"></script>
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/css/bootstrap.min.css">
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://maxcdn.bootstrapcdn.com/bootstrap/3.4.0/js/bootstrap.min.js"></script>
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.8.1/css/all.css">
+
+    <script>
+        var app = angular.module("meuCard", []);
+
+        app.config(function($httpProvider) {
+            $httpProvider.interceptors.push("spinner")
+        });
+
+        app.factory("spinner", function($q, $rootScope) {
+            $rootScope.loading = false;
+            return {
+                request: function(config) {
+                    $rootScope.loading = true;
+                    return config
+                },
+                requestErro: function(rejection) {
+                    $rootScope.loading = false;
+                    return $q.reject(rejection)
+                },
+
+                response: function(response) {
+                    $rootScope.loading = false;
+                    return response
+                },
+
+                reponseErro: function(rejection) {
+                    $rootScope.loading = false;
+                    return $q.reject(rejection)
+                }
+            }
+        });
+
+        app.service("indice", function() {
+            let ind = 0;
+            this.setInd = function() {
+                ind = 0;
+            }
+
+            this.getInd = function() {
+                return ind
+            };
+            this.incrementaIndice = function() {
+                ind += 1;
+            }
+        });
+
+        app.filter("formData", function() {
+            return function(input) {
+                var out = input.split("-");
+                var dia = out[2];
+                var mes = out[1];
+                var ano = out[0]
+                return dia + "/" + mes + "/" + ano
+            }
+        });
+        app.controller("meuController", function(indice, $http) {
+            let self = this;
+
+            self.getIndice = function() {
+                indice.incrementaIndice();
+                if (indice.getInd() >= 7) indice.setInd();
+                self.ind = indice.getInd();
+                console.log(self.ind)
+            };
+
+            $http({
+                method: "GET",
+                // API do clima tempo
+                url: "http://apiadvisor.climatempo.com.br/api/v1/forecast/locale/5959/days/15?token=e300a710abe2c6a75efa62c9a234589b"
+            }).then(function dadosRecebidos(response) {
+                self.dados = response.data;
+                //                    console.log(self.dados)
+            })
+        })
+    </script>
+</head>
+
+<body ng-controller="meuController as ctrl">
+    <div class="container">
+        <div class="well">
+            <div class="page-header">
+                <h3>Meu Card</h3>
+            </div>
+            <div class="row">
+                <div class="col-md-6 col-md-offset-3">
+                    <div class="panel panel-primary">
+                        <div class="panel-heading">
+                            <h3 class="text-center"><i class="fas fa-cloud-sun"></i> {{ctrl.dados.name}}</h3>
+                        </div>
+                        <div class="panel-body" ng-init="ctrl.ind = 0">
+                            <div ng-show="loading"><img class="img-responsive"src="load.gif"style="width:20%;margin:0 auto"></div>
+                            <div ng-hide="loading">
+                                <ul>
+                                    <li>Previsão para odia <strong>{{ctrl.dados.data[ctrl.ind].date|formData}}</strong></li>
+                                    <li>Temperatura Máxima {{ctrl.dados.data[ctrl.ind].temperature.max}} C&deg;</li>
+                                    <li>Temperatura mínima{{ctrl.dados.data[ctrl.ind].temperature.min}} C&deg;</li>
+                                </ul>
+                                <br>
+                                <div class=" well">
+                                    <h2 class="text-center">Sensação térmica</h2>
+                                    <li><label>MAX {{ctrl.dados.data[ctrl.ind].thermal_sensation.max}} C&deg;</label></li>
+                                    <li><label>Min {{ctrl.dados.data[ctrl.ind].thermal_sensation.min}} C&deg;</label></li>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="panel-footer">
+                            <button class="btn btn-danger" ng-click="ctrl.getIndice()">Proximo<i class="fas fa-chevron-right"></i></button>
+                        </div>
+                    </div>
+                </div><!-- row -->
+            </div>
+        </div><!-- fim well -->
+    </div><!-- fim container -->
+
+    <!-- jquery -->
+    <script src="https://code.jquery.com/jquery-3.3.1.slim.min.js"></script>
+
+
+</body>
+</html>
